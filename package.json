@@ -1,0 +1,20 @@
+{
+  "name": "url-downloader-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "download.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "ava"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "ava": "^2.4.0",
+    "delay": "^4.3.0",
+    "in-range": "^2.0.0",
+    "time-span": "^3.1.0"
+  }
+}
