@@ -1,4 +1,4 @@
-let promiseQueues = require('./promise-queues');
+let pLimit = require('p-limit');
 
 function findDomain(url) {
     try {
@@ -7,24 +7,6 @@ function findDomain(url) {
     } catch (e) {
         return undefined;
     }
-}
-
-function splitByDomain(urls) {
-    let domains = {};
-
-    urls.forEach(url => {
-        let domain = findDomain(url);
-
-        if (domain) {
-            domains[domain] = domains[domain] || [];
-            domains[domain].push(url);
-        } else {
-            throw new Error('URL with wrong domain')
-        }
-
-    });
-
-    return Object.values(domains);
 }
 
 function downloadAndSaveFake(url) {
@@ -37,16 +19,43 @@ function downloadAndSaveFake(url) {
     });
 }
 
-function download(urls, queueConcurrency = 2, concurrency = 4) {
-    let domainGroups = splitByDomain(urls);
-    let queues = domainGroups.map(urls => {
-        return urls.map(url => () => downloadAndSaveFake(url))
-    });
+function taskConcurrencyLimit(getLimiterTypes = task => []) {
+    let limiters = {};
 
-    return promiseQueues(queues, {
-        queueConcurrency,
-        concurrency
-    })
+    let getLimiters = task => {
+        return getLimiterTypes(task).map(({type, concurrency}) => {
+            limiters[type] = limiters[type] || pLimit(concurrency);
+
+            return limiters[type];
+        });
+    };
+
+    return task => {
+        return getLimiters(task).reduce((f, limiter) => {
+            return task => limiter(() => f(task))
+        }, task => task.func())(task)
+    }
 }
 
-module.exports = download;
+function download(urls, queueConcurrency = 2, concurrency = 4) {
+    let dispatch = taskConcurrencyLimit(
+        task => {
+            return [
+                {type: 'maxConcurrency', concurrency},
+                {type: findDomain(task.data), concurrency: queueConcurrency}
+            ]
+        }
+    );
+
+    return Promise.all(urls.map(url => {
+        return dispatch({
+            func: () => downloadAndSaveFake(url),
+            data: url
+        });
+    }))
+}
+
+module.exports = {
+    download,
+    taskConcurrencyLimit
+};
