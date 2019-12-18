@@ -1,4 +1,4 @@
-let pLimit = require('p-limit');
+let pLimit = require('./tLimit');
 
 function findDomain(url) {
     try {
