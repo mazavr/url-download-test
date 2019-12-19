@@ -5,14 +5,13 @@ function tLimit(concurrency = 1) {
     let run = () => {
         if (currentConcurrency < concurrency && queue.length > 0) {
             currentConcurrency++;
-            let fromQueue = queue.shift();
+            let [task, resolve, reject] = queue.shift();
 
-            Promise.resolve(fromQueue[0]())
-                .then(fromQueue[1], fromQueue[2])
-                .then(result => {
+            Promise.resolve(task())
+                .then(resolve, reject)
+                .then(() => {
                     currentConcurrency--;
                     run();
-                    return result;
                 })
         }
     };

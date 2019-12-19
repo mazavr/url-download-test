@@ -39,6 +39,18 @@ test('concurrency: 2', t => {
     })
 });
 
+test('concurrency: 2,  similar by time tasks', t => {
+    let limit = tLimit(2);
+    let end = timeSpan();
+
+    return Promise.all([100, 100, 200, 200, 300, 300].map(ms => limit(() => delay(ms, {value: ms})))).then(res => {
+        t.deepEqual(res, [100, 100, 200, 200, 300, 300]);
+        let ended = end();
+        console.log(ended);
+        t.true(inRange(ended, getEnd(600)));
+    })
+});
+
 test('concurrency: 2, changed order', t => {
     let limit = tLimit(2);
     let end = timeSpan();
